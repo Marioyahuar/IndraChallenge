@@ -1,0 +1,202 @@
+{
+  "info": {
+    "name": "Rimac Appointment API",
+    "description": "Colección de pruebas para la API de agendamiento de citas",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Crear Cita - Perú",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"insuredId\": \"12345\",\n  \"scheduleId\": 100,\n  \"countryISO\": \"PE\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments"
+          ]
+        },
+        "description": "Crea una cita médica para un asegurado en Perú"
+      }
+    },
+    {
+      "name": "Crear Cita - Chile",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"insuredId\": \"67890\",\n  \"scheduleId\": 200,\n  \"countryISO\": \"CL\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments"
+          ]
+        },
+        "description": "Crea una cita médica para un asegurado en Chile"
+      }
+    },
+    {
+      "name": "Obtener Citas por Asegurado - PE",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments/12345",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments",
+            "12345"
+          ]
+        },
+        "description": "Obtiene todas las citas del asegurado 12345"
+      }
+    },
+    {
+      "name": "Obtener Citas por Asegurado - CL",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments/67890",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments",
+            "67890"
+          ]
+        },
+        "description": "Obtiene todas las citas del asegurado 67890"
+      }
+    },
+    {
+      "name": "Test Validación - insuredId inválido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"insuredId\": \"123\",\n  \"scheduleId\": 100,\n  \"countryISO\": \"PE\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments"
+          ]
+        },
+        "description": "Debe fallar - insuredId debe tener 5 dígitos"
+      }
+    },
+    {
+      "name": "Test Validación - país inválido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"insuredId\": \"12345\",\n  \"scheduleId\": 100,\n  \"countryISO\": \"US\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments"
+          ]
+        },
+        "description": "Debe fallar - solo acepta PE o CL"
+      }
+    },
+    {
+      "name": "Test Validación - scheduleId faltante",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"insuredId\": \"12345\",\n  \"countryISO\": \"PE\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/dev/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "dev",
+            "appointments"
+          ]
+        },
+        "description": "Debe fallar - scheduleId es requerido"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/dev"
+    }
+  ]
+}

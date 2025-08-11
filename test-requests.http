@@ -1,0 +1,48 @@
+# Archivo para probar los endpoints localmente
+# Usar con extensión REST Client de VS Code
+
+### Crear cita para Perú
+POST http://localhost:3000/dev/appointments
+Content-Type: application/json
+
+{
+  "insuredId": "12345",
+  "scheduleId": 100,
+  "countryISO": "PE"
+}
+
+### Crear cita para Chile  
+POST http://localhost:3000/dev/appointments
+Content-Type: application/json
+
+{
+  "insuredId": "67890", 
+  "scheduleId": 200,
+  "countryISO": "CL"
+}
+
+### Obtener citas por asegurado
+GET http://localhost:3000/dev/appointments/12345
+
+### Obtener citas por otro asegurado
+GET http://localhost:3000/dev/appointments/67890
+
+### Test con datos inválidos - insuredId corto
+POST http://localhost:3000/dev/appointments
+Content-Type: application/json
+
+{
+  "insuredId": "123",
+  "scheduleId": 100,
+  "countryISO": "PE"
+}
+
+### Test con país inválido
+POST http://localhost:3000/dev/appointments
+Content-Type: application/json
+
+{
+  "insuredId": "12345",
+  "scheduleId": 100,
+  "countryISO": "US"
+}

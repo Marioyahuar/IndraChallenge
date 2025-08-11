@@ -1,0 +1,218 @@
+service: rimac-appointment-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-2'}
+  environment:
+    DYNAMO_TABLE: ${self:custom.appointmentsTableName}
+    SNS_TOPIC_ARN: !Ref AppointmentTopic
+    SQS_PE_URL: !Ref PeQueue
+    SQS_CL_URL: !Ref ClQueue
+    SQS_RESPONSE_URL: !Ref ResponseQueue
+    RDS_HOST: ${env:RDS_HOST, 'localhost'}
+    RDS_USER: ${env:RDS_USER, 'root'}
+    RDS_PASSWORD: ${env:RDS_PASSWORD, 'password'}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: !GetAtt AppointmentsTable.Arn
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: !Ref AppointmentTopic
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+        - sqs:ReceiveMessage
+        - sqs:DeleteMessage
+        - sqs:GetQueueAttributes
+      Resource:
+        - !GetAtt PeQueue.Arn
+        - !GetAtt ClQueue.Arn
+        - !GetAtt ResponseQueue.Arn
+    - Effect: Allow
+      Action:
+        - events:PutEvents
+      Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default'
+
+custom:
+  appointmentsTableName: appointments-${self:provider.stage}
+  serverless-offline:
+    httpPort: 3000
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+    stages:
+      - dev
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-dynamodb
+  - serverless-offline
+
+functions:
+  appointment:
+    handler: src/handlers/appointment.handler
+    events:
+      - http:
+          path: appointments
+          method: post
+          cors: true
+      - http:
+          path: appointments/{insuredId}
+          method: get
+          cors: true
+      - sqs:
+          arn: !GetAtt ResponseQueue.Arn
+
+  appointmentPe:
+    handler: src/handlers/appointmentPe.handler
+    events:
+      - sqs:
+          arn: !GetAtt PeQueue.Arn
+
+  appointmentCl:
+    handler: src/handlers/appointmentCl.handler
+    events:
+      - sqs:
+          arn: !GetAtt ClQueue.Arn
+
+resources:
+  Resources:
+    AppointmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.appointmentsTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: insuredId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: insuredId-index
+            KeySchema:
+              - AttributeName: insuredId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    AppointmentTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: appointment-topic-${self:provider.stage}
+
+    PeQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: appointment-pe-${self:provider.stage}
+
+    ClQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: appointment-cl-${self:provider.stage}
+
+    ResponseQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: appointment-response-${self:provider.stage}
+
+    PeSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: !Ref AppointmentTopic
+        Protocol: sqs
+        Endpoint: !GetAtt PeQueue.Arn
+        FilterPolicy:
+          countryISO:
+            - PE
+
+    ClSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: !Ref AppointmentTopic
+        Protocol: sqs
+        Endpoint: !GetAtt ClQueue.Arn
+        FilterPolicy:
+          countryISO:
+            - CL
+
+    PeQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: sns.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt PeQueue.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref AppointmentTopic
+        Queues:
+          - !Ref PeQueue
+
+    ClQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: sns.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt ClQueue.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref AppointmentTopic
+        Queues:
+          - !Ref ClQueue
+
+    AppointmentEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: appointment-completed-${self:provider.stage}
+        EventPattern:
+          source:
+            - appointment.service
+          detail-type:
+            - Appointment Completed
+        Targets:
+          - Arn: !GetAtt ResponseQueue.Arn
+            Id: ResponseQueueTarget
+            SqsParameters:
+              MessageGroupId: appointment-responses
+
+    EventBridgeToSqsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: EventBridgeToSqsPolicy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - sqs:SendMessage
+                  Resource: !GetAtt ResponseQueue.Arn

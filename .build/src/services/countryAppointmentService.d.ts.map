@@ -1,0 +1,1 @@
+{"version":3,"file":"countryAppointmentService.d.ts","sourceRoot":"","sources":["../../../src/services/countryAppointmentService.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,UAAU,EAAqB,MAAM,UAAU,CAAC;AAEzD,qBAAa,yBAAyB;IACpC,OAAO,CAAC,YAAY,CAAe;IACnC,OAAO,CAAC,kBAAkB,CAAqB;gBAEnC,UAAU,EAAE,IAAI,GAAG,IAAI;IAK7B,kBAAkB,CAAC,OAAO,EAAE,UAAU,GAAG,OAAO,CAAC,IAAI,CAAC;CAsB7D"}

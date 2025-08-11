@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: Rimac Appointment API
+  description: API serverless para agendamiento de citas médicas en Perú y Chile
+  version: 1.0.0
+  contact:
+    name: Rimac Technical Team
+    email: tech@rimac.com
+
+servers:
+  - url: https://api.rimac.com/dev
+    description: Development server
+  - url: https://api.rimac.com/prod
+    description: Production server
+
+paths:
+  /appointments:
+    post:
+      summary: Crear nueva cita médica
+      description: Registra una nueva solicitud de cita médica para un asegurado
+      tags:
+        - Appointments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequest'
+            examples:
+              pe_example:
+                summary: Ejemplo para Perú
+                value:
+                  insuredId: "12345"
+                  scheduleId: 100
+                  countryISO: "PE"
+              cl_example:
+                summary: Ejemplo para Chile
+                value:
+                  insuredId: "67890"
+                  scheduleId: 200
+                  countryISO: "CL"
+      responses:
+        '201':
+          description: Cita creada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Appointment request received and is being processed"
+                  appointment:
+                    $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /appointments/{insuredId}:
+    get:
+      summary: Obtener citas por asegurado
+      description: Recupera todas las citas de un asegurado específico
+      tags:
+        - Appointments
+      parameters:
+        - name: insuredId
+          in: path
+          required: true
+          description: Código del asegurado (5 dígitos)
+          schema:
+            type: string
+            pattern: '^\\d{5}$'
+            example: "12345"
+      responses:
+        '200':
+          description: Lista de citas del asegurado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          description: ID de asegurado inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asegurado no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AppointmentRequest:
+      type: object
+      required:
+        - insuredId
+        - scheduleId
+        - countryISO
+      properties:
+        insuredId:
+          type: string
+          pattern: '^\\d{5}$'
+          description: Código del asegurado de 5 dígitos
+          example: "12345"
+        scheduleId:
+          type: integer
+          minimum: 1
+          description: Identificador del espacio de cita (centro médico + especialidad + médico + fecha/hora)
+          example: 100
+        countryISO:
+          type: string
+          enum: [PE, CL]
+          description: Código ISO del país
+          example: "PE"
+
+    AppointmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único de la cita
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        insuredId:
+          type: string
+          description: Código del asegurado
+          example: "12345"
+        scheduleId:
+          type: integer
+          description: Identificador del espacio de cita
+          example: 100
+        countryISO:
+          type: string
+          enum: [PE, CL]
+          description: Código ISO del país
+          example: "PE"
+        status:
+          type: string
+          enum: [pending, completed]
+          description: Estado actual de la cita
+          example: "pending"
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de creación
+          example: "2024-03-20T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de última actualización
+          example: "2024-03-20T10:30:00.000Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Mensaje de error
+          example: "Validation error: insuredId must be exactly 5 digits"
+
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    InternalServerError:
+      description: Error interno del servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Appointments
+    description: Operaciones relacionadas con citas médicas
