@@ -1,6 +1,6 @@
 service: rimac-appointment-api
 
-frameworkVersion: '3'
+frameworkVersion: "3"
 
 provider:
   name: aws
@@ -43,28 +43,29 @@ provider:
     - Effect: Allow
       Action:
         - events:PutEvents
-      Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default'
+      Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
 
 custom:
   appointmentsTableName: appointments-${self:provider.stage}
-  serverless-offline:
-    httpPort: 3000
-  dynamodb:
-    start:
-      port: 8000
-      inMemory: true
-      migrate: true
-    stages:
-      - dev
 
 plugins:
+  - serverless-dotenv-plugin
   - serverless-plugin-typescript
-  - serverless-dynamodb
   - serverless-offline
+
+package:
+  patterns:
+    - "!node_modules/**"
+    - "!.git/**"
+    - "!.vscode/**"
+    - "!coverage/**"
+    - "!__tests__/**"
+    - "!*.log"
+    - "!.build/**"
 
 functions:
   appointment:
-    handler: src/handlers/appointment.handler
+    handler: src/infrastructure/handlers/appointmentHandler.handler
     events:
       - http:
           path: appointments
@@ -78,13 +79,13 @@ functions:
           arn: !GetAtt ResponseQueue.Arn
 
   appointmentPe:
-    handler: src/handlers/appointmentPe.handler
+    handler: src/infrastructure/handlers/appointmentPeHandler.handler
     events:
       - sqs:
           arn: !GetAtt PeQueue.Arn
 
   appointmentCl:
-    handler: src/handlers/appointmentCl.handler
+    handler: src/infrastructure/handlers/appointmentClHandler.handler
     events:
       - sqs:
           arn: !GetAtt ClQueue.Arn
@@ -196,8 +197,7 @@ resources:
         Targets:
           - Arn: !GetAtt ResponseQueue.Arn
             Id: ResponseQueueTarget
-            SqsParameters:
-              MessageGroupId: appointment-responses
+            RoleArn: !GetAtt EventBridgeToSqsRole.Arn
 
     EventBridgeToSqsRole:
       Type: AWS::IAM::Role
