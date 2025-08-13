@@ -16,6 +16,8 @@ provider:
     RDS_HOST: ${env:RDS_HOST, 'localhost'}
     RDS_USER: ${env:RDS_USER, 'root'}
     RDS_PASSWORD: ${env:RDS_PASSWORD, 'password'}
+    RDS_DATABASE_PE: ${env:RDS_DATABASE_PE, 'appointments_pe'}
+    RDS_DATABASE_CL: ${env:RDS_DATABASE_CL, 'appointments_cl'}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -25,7 +27,9 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: !GetAtt AppointmentsTable.Arn
+      Resource:
+        - !GetAtt AppointmentsTable.Arn
+        - !Sub "${AppointmentsTable.Arn}/index/*"
     - Effect: Allow
       Action:
         - sns:Publish
@@ -55,13 +59,15 @@ plugins:
 
 package:
   patterns:
-    - "!node_modules/**"
     - "!.git/**"
     - "!.vscode/**"
     - "!coverage/**"
     - "!__tests__/**"
     - "!*.log"
     - "!.build/**"
+    - "!scripts/**"
+    - "!*.md"
+    - "!*.pdf"
 
 functions:
   appointment:

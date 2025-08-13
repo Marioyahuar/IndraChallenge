@@ -11,6 +11,7 @@ import { CreateAppointmentUseCase } from '../../application/usecases/createAppoi
 import { GetAppointmentsByInsuredUseCase } from '../../application/usecases/getAppointmentsByInsured.usecase';
 import { CompleteAppointmentUseCase } from '../../application/usecases/completeAppointment.usecase';
 import { DynamoAppointmentRepositoryAdapter } from '../adapters/dynamoAppointmentRepository.adapter';
+import { MysqlScheduleRepositoryAdapter } from '../adapters/mysqlScheduleRepository.adapter';
 import { AwsEventPublisherAdapter } from '../adapters/awsEventPublisher.adapter';
 
 /**
@@ -20,10 +21,11 @@ import { AwsEventPublisherAdapter } from '../adapters/awsEventPublisher.adapter'
 
 // Inyección de dependencias - configuración de adaptadores
 const appointmentRepository = new DynamoAppointmentRepositoryAdapter();
+const scheduleRepository = new MysqlScheduleRepositoryAdapter();
 const eventPublisher = new AwsEventPublisherAdapter();
 
 // Instanciación de casos de uso con dependencias inyectadas
-const createAppointmentUseCase = new CreateAppointmentUseCase(appointmentRepository, eventPublisher);
+const createAppointmentUseCase = new CreateAppointmentUseCase(appointmentRepository, scheduleRepository, eventPublisher);
 const getAppointmentsByInsuredUseCase = new GetAppointmentsByInsuredUseCase(appointmentRepository);
 const completeAppointmentUseCase = new CompleteAppointmentUseCase(appointmentRepository);
 
@@ -109,9 +111,11 @@ const sqsHandler: SQSHandler = async (event: SQSEvent, context) => {
 
     for (const record of event.Records) {
       const message = JSON.parse(record.body);
+      console.log('🔍 Raw SQS message:', JSON.stringify(message, null, 2));
       
-      // El mensaje puede venir directo o encapsulado desde EventBridge
-      const appointmentData = message.appointmentId ? message : JSON.parse(message.Message || '{}');
+      // El mensaje viene de EventBridge con estructura específica
+      const appointmentData = message.detail || message;
+      console.log('🔍 Parsed appointment data:', JSON.stringify(appointmentData, null, 2));
       
       if (appointmentData.appointmentId) {
         // Ejecutar caso de uso de completar cita

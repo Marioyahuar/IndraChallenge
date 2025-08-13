@@ -104,6 +104,33 @@ export class DynamoAppointmentRepositoryAdapter implements AppointmentRepository
   }
 
   /**
+   * Busca una cita específica por asegurado y horario
+   * @param insuredId - Código del asegurado
+   * @param scheduleId - ID del horario
+   * @returns La cita encontrada o null si no existe
+   */
+  async findByInsuredAndSchedule(insuredId: string, scheduleId: number): Promise<AppointmentEntity | null> {
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: 'insuredId-index',
+      KeyConditionExpression: 'insuredId = :insuredId',
+      FilterExpression: 'scheduleId = :scheduleId',
+      ExpressionAttributeValues: {
+        ':insuredId': insuredId,
+        ':scheduleId': scheduleId
+      }
+    });
+
+    const response = await this.client.send(command);
+    
+    if (!response.Items || response.Items.length === 0) {
+      return null;
+    }
+
+    return this.mapToEntity(response.Items[0]);
+  }
+
+  /**
    * Convierte datos de DynamoDB a entidad de dominio
    * @param item - Item de DynamoDB
    * @returns Entidad de cita médica

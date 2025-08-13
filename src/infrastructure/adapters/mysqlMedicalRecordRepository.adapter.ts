@@ -33,18 +33,34 @@ export class MySqlMedicalRecordRepositoryAdapter implements MedicalRecordReposit
     try {
       const persistenceData = record.toPersistence();
       
-      const [result] = await connection.execute<mysql.ResultSetHeader>(
-        `INSERT INTO appointments 
-         (insuredId, scheduleId, countryISO, appointmentId, createdAt) 
-         VALUES (?, ?, ?, ?, NOW())`,
+      // Primero verificar si ya existe
+      const [existingRows] = await connection.execute<mysql.RowDataPacket[]>(
+        `SELECT id FROM appointments 
+         WHERE insured_id = ? AND schedule_id = ? AND country_iso = ?`,
         [
           persistenceData.insuredId,
           persistenceData.scheduleId,
-          persistenceData.countryISO,
-          persistenceData.appointmentId
+          persistenceData.countryISO
+        ]
+      );
+
+      if (existingRows.length > 0) {
+        console.log(`[${persistenceData.countryISO}] Appointment already exists - returning existing ID: ${existingRows[0].id}`);
+        return existingRows[0].id;
+      }
+      
+      const [result] = await connection.execute<mysql.ResultSetHeader>(
+        `INSERT INTO appointments 
+         (insured_id, schedule_id, country_iso, status, created_at) 
+         VALUES (?, ?, ?, 'scheduled', NOW())`,
+        [
+          persistenceData.insuredId,
+          persistenceData.scheduleId,
+          persistenceData.countryISO
         ]
       );
       
+      console.log(`[${persistenceData.countryISO}] New appointment created with ID: ${result.insertId}`);
       return result.insertId;
     } finally {
       await connection.end();
@@ -61,20 +77,20 @@ export class MySqlMedicalRecordRepositoryAdapter implements MedicalRecordReposit
     
     try {
       const [rows] = await connection.execute<mysql.RowDataPacket[]>(
-        `SELECT id, insuredId, scheduleId, countryISO, appointmentId, createdAt 
+        `SELECT id, insured_id, schedule_id, country_iso, status, created_at 
          FROM appointments 
-         WHERE countryISO = ? 
-         ORDER BY createdAt DESC`,
+         WHERE country_iso = ? 
+         ORDER BY created_at DESC`,
         [countryISO]
       );
       
       return rows.map(row => MedicalRecord.fromPersistence({
         id: row.id,
-        insuredId: row.insuredId,
-        scheduleId: row.scheduleId,
-        countryISO: row.countryISO,
-        appointmentId: row.appointmentId,
-        createdAt: row.createdAt
+        insuredId: row.insured_id,
+        scheduleId: row.schedule_id,
+        countryISO: row.country_iso,
+        appointmentId: `${row.id}`, // Usar el ID como appointmentId
+        createdAt: row.created_at
       }));
     } finally {
       await connection.end();

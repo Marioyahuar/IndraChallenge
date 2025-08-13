@@ -31,4 +31,12 @@ export interface AppointmentRepositoryPort {
    * @param status - Nuevo estado de la cita
    */
   updateStatus(id: string, status: 'pending' | 'completed'): Promise<void>;
+
+  /**
+   * Busca una cita específica por asegurado y horario
+   * @param insuredId - Código del asegurado
+   * @param scheduleId - ID del horario
+   * @returns La cita encontrada o null si no existe
+   */
+  findByInsuredAndSchedule(insuredId: string, scheduleId: number): Promise<AppointmentEntity | null>;
 }

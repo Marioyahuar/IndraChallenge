@@ -1,1 +1,0 @@
-{"version":3,"file":"appointmentValidator.d.ts","sourceRoot":"","sources":["../../../src/validators/appointmentValidator.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,MAAM,UAAU,CAAC;AAE9C,qBAAa,oBAAoB;IAC/B,MAAM,CAAC,qBAAqB,CAAC,IAAI,EAAE,GAAG,GAAG,kBAAkB;IAkC3D,MAAM,CAAC,iBAAiB,CAAC,SAAS,EAAE,MAAM,GAAG,IAAI;CASlD"}

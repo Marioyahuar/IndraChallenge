@@ -1,7 +1,8 @@
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 import { AppointmentEntity } from '../../domain/entities/appointment.entity';
 import { AppointmentCreatedEvent } from '../../domain/events/appointment.events';
 import { AppointmentRepositoryPort } from '../../domain/ports/appointmentRepository.port';
+import { ScheduleRepositoryPort } from '../../domain/ports/scheduleRepository.port';
 import { EventPublisherPort } from '../../domain/ports/eventPublisher.port';
 
 /**
@@ -11,6 +12,7 @@ import { EventPublisherPort } from '../../domain/ports/eventPublisher.port';
 export class CreateAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: AppointmentRepositoryPort,
+    private readonly scheduleRepository: ScheduleRepositoryPort,
     private readonly eventPublisher: EventPublisherPort
   ) {}
 
@@ -20,9 +22,28 @@ export class CreateAppointmentUseCase {
    * @returns La cita creada con su estado inicial
    */
   async execute(request: CreateAppointmentRequest): Promise<CreateAppointmentResponse> {
-    // 1. Crear la entidad de dominio con validaciones incluidas
+    // 1. Validar que el schedule existe y está disponible
+    const schedule = await this.scheduleRepository.findById(request.scheduleId, request.countryISO);
+    if (!schedule) {
+      throw new Error(`El horario con ID ${request.scheduleId} no existe en ${request.countryISO}`);
+    }
+
+    if (!schedule.canBeBooked()) {
+      throw new Error(`El horario con ID ${request.scheduleId} no está disponible para reserva`);
+    }
+
+    // 2. Verificar que el asegurado no tenga ya una cita en este horario
+    const existingAppointment = await this.appointmentRepository.findByInsuredAndSchedule(
+      request.insuredId, 
+      request.scheduleId
+    );
+    if (existingAppointment) {
+      throw new Error(`El asegurado ${request.insuredId} ya tiene una cita en el horario ${request.scheduleId}`);
+    }
+
+    // 3. Crear la entidad de dominio con validaciones incluidas
     const appointment = new AppointmentEntity(
-      uuidv4(),
+      uuid.v4(),
       request.insuredId,
       request.scheduleId,
       request.countryISO,
@@ -31,10 +52,13 @@ export class CreateAppointmentUseCase {
       new Date().toISOString()
     );
 
-    // 2. Persistir la cita en el repositorio
+    // 4. Marcar el horario como no disponible
+    await this.scheduleRepository.markAsUnavailable(request.scheduleId, request.countryISO);
+
+    // 5. Persistir la cita en el repositorio
     await this.appointmentRepository.save(appointment);
 
-    // 3. Crear y publicar evento de dominio
+    // 6. Crear y publicar evento de dominio
     const event = new AppointmentCreatedEvent(
       appointment.id,
       appointment.insuredId,
@@ -44,7 +68,7 @@ export class CreateAppointmentUseCase {
 
     await this.eventPublisher.publishAppointmentCreated(event);
 
-    // 4. Retornar respuesta del caso de uso
+    // 7. Retornar respuesta del caso de uso
     return {
       id: appointment.id,
       insuredId: appointment.insuredId,

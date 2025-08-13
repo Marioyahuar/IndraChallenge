@@ -1,1 +1,0 @@
-{"version":3,"file":"snsService.d.ts","sourceRoot":"","sources":["../../../src/services/snsService.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,UAAU,EAAE,MAAM,UAAU,CAAC;AAEtC,qBAAa,UAAU;IACrB,OAAO,CAAC,MAAM,CAAY;IAC1B,OAAO,CAAC,QAAQ,CAAS;;IAOnB,kBAAkB,CAAC,OAAO,EAAE,UAAU,GAAG,OAAO,CAAC,IAAI,CAAC;CAc7D"}
